@@ -1,5 +1,8 @@
 <img alt="GitHub Downloads (all releases)" src="https://img.shields.io/github/downloads/YonCursedMC/Alpha1.0.17.4_08/total?style=for-the-badge">
 
+# EN
+https://github.com/YonCursedMC/Alpha1.0.17.4_08/blob/main/README_EN.md
+
 # Alpha1.0.17.4_08
 
 # JP
