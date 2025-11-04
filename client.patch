@@ -1,0 +1,1912 @@
+--- net/minecraft/src/ModelRenderer.java
++++ net/minecraft/src/ModelRenderer.java
+@@ -18,6 +18,8 @@
+ 	public boolean mirror = false;
+ 	public boolean showModel = true;
+ 	public boolean isHidden = false;
++	public float textureSizeWidth = 64.0F;
++	public float textureSizeHeight = 32.0F;
+ 
+ 	public ModelRenderer(int var1, int var2) {
+ 		this.textureOffsetX = var1;
+@@ -28,6 +30,11 @@
+ 		this.addBox(var1, var2, var3, var4, var5, var6, 0.0F);
+ 	}
+ 
++	public void setSize(float var1, float var2) {
++		this.textureSizeWidth = var1;
++		this.textureSizeHeight = var2;
++	}
++
+ 	public void addBox(float var1, float var2, float var3, int var4, int var5, int var6, float var7) {
+ 		this.corners = new PositionTexureVertex[8];
+ 		this.faces = new TexturedQuad[6];
+@@ -62,12 +69,12 @@
+ 		this.corners[5] = var16;
+ 		this.corners[6] = var17;
+ 		this.corners[7] = var18;
+-		this.faces[0] = new TexturedQuad(new PositionTexureVertex[]{var16, var12, var13, var17}, this.textureOffsetX + var6 + var4, this.textureOffsetY + var6, this.textureOffsetX + var6 + var4 + var6, this.textureOffsetY + var6 + var5);
+-		this.faces[1] = new TexturedQuad(new PositionTexureVertex[]{var20, var15, var18, var14}, this.textureOffsetX + 0, this.textureOffsetY + var6, this.textureOffsetX + var6, this.textureOffsetY + var6 + var5);
+-		this.faces[2] = new TexturedQuad(new PositionTexureVertex[]{var16, var15, var20, var12}, this.textureOffsetX + var6, this.textureOffsetY + 0, this.textureOffsetX + var6 + var4, this.textureOffsetY + var6);
+-		this.faces[3] = new TexturedQuad(new PositionTexureVertex[]{var13, var14, var18, var17}, this.textureOffsetX + var6 + var4, this.textureOffsetY + 0, this.textureOffsetX + var6 + var4 + var4, this.textureOffsetY + var6);
+-		this.faces[4] = new TexturedQuad(new PositionTexureVertex[]{var12, var20, var14, var13}, this.textureOffsetX + var6, this.textureOffsetY + var6, this.textureOffsetX + var6 + var4, this.textureOffsetY + var6 + var5);
+-		this.faces[5] = new TexturedQuad(new PositionTexureVertex[]{var15, var16, var17, var18}, this.textureOffsetX + var6 + var4 + var6, this.textureOffsetY + var6, this.textureOffsetX + var6 + var4 + var6 + var4, this.textureOffsetY + var6 + var5);
++		this.faces[0] = new TexturedQuad(new PositionTexureVertex[]{var16, var12, var13, var17}, this.textureOffsetX + var6 + var4, this.textureOffsetY + var6, this.textureOffsetX + var6 + var4 + var6, this.textureOffsetY + var6 + var5, this.textureSizeWidth, this.textureSizeHeight);
++		this.faces[1] = new TexturedQuad(new PositionTexureVertex[]{var20, var15, var18, var14}, this.textureOffsetX + 0, this.textureOffsetY + var6, this.textureOffsetX + var6, this.textureOffsetY + var6 + var5, this.textureSizeWidth, this.textureSizeHeight);
++		this.faces[2] = new TexturedQuad(new PositionTexureVertex[]{var16, var15, var20, var12}, this.textureOffsetX + var6, this.textureOffsetY + 0, this.textureOffsetX + var6 + var4, this.textureOffsetY + var6, this.textureSizeWidth, this.textureSizeHeight);
++		this.faces[3] = new TexturedQuad(new PositionTexureVertex[]{var13, var14, var18, var17}, this.textureOffsetX + var6 + var4, this.textureOffsetY + 0, this.textureOffsetX + var6 + var4 + var4, this.textureOffsetY + var6, this.textureSizeWidth, this.textureSizeHeight);
++		this.faces[4] = new TexturedQuad(new PositionTexureVertex[]{var12, var20, var14, var13}, this.textureOffsetX + var6, this.textureOffsetY + var6, this.textureOffsetX + var6 + var4, this.textureOffsetY + var6 + var5, this.textureSizeWidth, this.textureSizeHeight);
++		this.faces[5] = new TexturedQuad(new PositionTexureVertex[]{var15, var16, var17, var18}, this.textureOffsetX + var6 + var4 + var6, this.textureOffsetY + var6, this.textureOffsetX + var6 + var4 + var6 + var4, this.textureOffsetY + var6 + var5, this.textureSizeWidth, this.textureSizeHeight);
+ 		if(this.mirror) {
+ 			for(int var19 = 0; var19 < this.faces.length; ++var19) {
+ 				this.faces[var19].flipFace();
+--- net/minecraft/src/World.java
++++ net/minecraft/src/World.java
+@@ -1,5 +1,10 @@
+ package net.minecraft.src;
+ 
++import org.lwjgl.LWJGLException;
++import org.lwjgl.opengl.Display;
++import org.lwjgl.opengl.DisplayMode;
++import java.awt.*;
++import java.awt.event.KeyEvent;
+ import java.io.DataInputStream;
+ import java.io.DataOutputStream;
+ import java.io.File;
+@@ -54,6 +59,9 @@
+ 	private int soundCounter;
+ 	private List entitiesWithinAABBExcludingEntity;
+ 	public boolean multiplayerWorld;
++	public int[] timer;
++	public boolean[] timerS;
++	public EntityPlayerSP[] SPlayerSP;
+ 
+ 	public static NBTTagCompound getLevelData(File var0, String var1) {
+ 		File var2 = new File(var0, "saves");
+@@ -132,6 +140,9 @@
+ 		this.levelName = var1;
+ 		this.chunkProvider = this.getChunkProvider(this.saveDirectory);
+ 		this.calculateInitialSkylight();
++		this.timer = new int[20];
++		this.timerS = new boolean[20];
++		this.SPlayerSP = new EntityPlayerSP[20];
+ 	}
+ 
+ 	public World(File var1, String var2, long var3) {
+@@ -225,6 +236,18 @@
+ 		}
+ 
+ 		this.calculateInitialSkylight();
++		this.timer = new int[20];
++		this.timerS = new boolean[20];
++		this.SPlayerSP = new EntityPlayerSP[20];
++	}
++
++	public int getMaxY(int x, int z) {
++		for(int y = 128; y > 0; y--) {
++			if(this.getBlockId(x, y, z) != 0) {
++				return y;
++			}
++		}
++		return 0;
+ 	}
+ 
+ 	protected IChunkProvider getChunkProvider(File var1) {
+@@ -1518,7 +1541,293 @@
+ 
+ 	}
+ 
++	public void event0(EntityPlayerSP playerSP) {
++		this.SPlayerSP[0] = playerSP;
++		this.timerS[0] = true;
++	}
++
++	public void event1(EntityPlayerSP playerSP) {
++		this.timerS[1] = true;
++	}
++
++	public void event2(EntityPlayerSP playerSP) {
++		this.timerS[2] = true;
++	}
++
++	public void event3(EntityPlayerSP playerSP) {
++		playerSP.mc.displayGuiScreen(new GuiYesNoX("Do you pray?", "/YCM/YCM_" + new Random().nextInt(4) + ".png"));
++	}
++
++	public void event4(EntityPlayerSP playerSP) {
++		for(int x = 0; x <= 5; x++) {
++			for(int z = 0; z <= 5; z++) {
++				for(int y = 0; y <= 6; y++) {
++					this.setBlock((int)playerSP.posX + x, (int)playerSP.posY - y, (int)playerSP.posZ + z, 0);
++				}
++			}
++		}
++	}
++
++	public void event5(EntityPlayerSP playerSP) {
++		this.SPlayerSP[3] = playerSP;
++		this.timerS[3] = true;
++	}
++
++	public void event6(EntityPlayerSP playerSP) {
++		if(new Random().nextInt(2) == 0) {
++			new WorldGenSign().generate(this, (int)playerSP.posX, (int)playerSP.posY, (int)playerSP.posZ, "", "Defeat", "00001017408", "");
++		} else {
++			new WorldGenSign().generate(this, (int)playerSP.posX, (int)playerSP.posY, (int)playerSP.posZ, "Kill", "AA1MSLFMCBW", "and", "AEMOHISCHIM");
++		}
++	}
++
++	public void event7(EntityPlayerSP playerSP) {
++		playerSP.mc.ingameGUI.addChatMessage("Continue.");
++		this.timerS[4] = true;
++	}
++
++	public void event8(EntityPlayerSP playerSP) {
++		if(playerSP.mc.options.unlock && new Random().nextInt(3) == 0) {
++			this.timerS[6] = true;
++			try {
++				Display.setDisplayMode(new DisplayMode(800, 450));
++			} catch (LWJGLException e) {
++				throw new RuntimeException(e);
++			}
++		}
++	}
++
++	public void event9(EntityPlayerSP playerSP) {
++		new Thread(()->WavPlaySound.playsound("/sounds/YCMS0.wav")).start();
++		this.SPlayerSP[7] = playerSP;
++		this.SPlayerSP[7].SPos[0] = this.SPlayerSP[7].posX;
++		this.SPlayerSP[7].SPos[1] = this.SPlayerSP[7].posY;
++		this.SPlayerSP[7].SPos[2] = this.SPlayerSP[7].posZ;
++		this.timerS[7] = true;
++	}
++
++	public void event10(EntityPlayerSP playerSP) {
++		int XX = (int)playerSP.posX + 6;
++		int ZZ = (int)playerSP.posZ;
++		int YY = this.getMaxY(XX, ZZ);
++		EntityDoctor entityDoctor = new EntityDoctor(this);
++		entityDoctor.setLocationAndAngles(XX, YY, ZZ, 0, 0);
++		this.spawnEntityInWorld(entityDoctor);
++	}
++
++	public void event11(EntityPlayerSP playerSP) {
++		int XX = (int)playerSP.posX + 6;
++		int ZZ = (int)playerSP.posZ;
++		int YY = this.getMaxY(XX, ZZ);
++		EntityByte entityByte = new EntityByte(this);
++		entityByte.setLocationAndAngles(XX, YY, ZZ, 0, 0);
++		this.spawnEntityInWorld(entityByte);
++	}
++
++	public void event12(EntityPlayerSP playerSP) {
++		if(playerSP.mc.options.unlock) {
++			new Thread(()->WavPlaySound.playsound("/sounds/YCMS2.wav")).start();
++			for(int i = 0; i < 16; i++) {
++				int XX = (int)playerSP.posX;
++				int ZZ = (int)playerSP.posZ + i * 2;
++				new WorldGenBird().generate(this, XX, (int)this.getMaxY(XX, ZZ), ZZ);
++			}
++		}
++	}
++
+ 	public void tick() {
++		if(!this.multiplayerWorld) {
++			List<EntityPlayerSP> playerSPList = this.playerEntities;
++			EntityPlayerSP playerSP = playerSPList.get(new Random().nextInt(playerSPList.size()));
++			switch(new Random().nextInt(20 * 60 * 30)) {
++			case 0:
++				event0(playerSP);
++				break;
++			case 1:
++				event1(playerSP);
++				break;
++			case 2:
++				event2(playerSP);
++				break;
++			case 3:
++				event3(playerSP);
++				break;
++			case 4:
++				event4(playerSP);
++				break;
++			case 5:
++				event5(playerSP);
++				break;
++			case 6:
++				event6(playerSP);
++				break;
++			case 7:
++				event7(playerSP);
++				break;
++			case 8:
++				event8(playerSP);
++				break;
++			case 9:
++				event9(playerSP);
++				break;
++			case 10:
++				event10(playerSP);
++				break;
++			case 11:
++				event11(playerSP);
++				break;
++			case 12:
++				event12(playerSP);
++				break;
++			}
++			if(this.timerS[0]) {
++				this.timer[0]++;
++				this.SPlayerSP[0].motionX += 0.098F;
++				this.SPlayerSP[0].motionY += 0.098F;
++				if(this.timer[0] >= 20 * 3) {
++					this.timer[0] = 0;
++					this.timerS[0] = false;
++					this.SPlayerSP[0].mc.displayGuiScreen(new GuiErrorScreenX("%AA1MSLFMCBWAEMOHISCHIM"));
++					new Thread(()->WavPlaySound.playsound("/sounds/YCM_2.wav")).start();
++				}
++			}
++			if(this.timerS[1]) {
++				this.timer[1]++;
++				Robot robot = null;
++				try {
++					robot = new Robot();
++					robot.keyPress(KeyEvent.VK_S);
++				} catch (AWTException e) {
++					throw new RuntimeException(e);
++				}
++				if(this.timer[1] >= 20 * 5) {
++					this.timer[1] = 0;
++					this.timerS[1] = false;
++					robot.keyRelease(KeyEvent.VK_S);
++				}
++			}
++			if(this.timerS[2]) {
++				this.timer[2]++;
++				if(this.timer[2] % 5 == 0) {
++					playerSP.mc.ingameGUI.addChatMessage("<player" + new Random().nextInt(1017408) + "> 00001017408 has stopped working.");
++					this.setWorldTime(new Random().nextInt(24000));
++				}
++				if(this.timer[2] >= 20 * 6) {
++					this.timer[2] = 0;
++					this.timerS[2] = false;
++				}
++			}
++			if(this.timerS[3]) {
++				this.timer[3]++;
++				if(this.timer[3] <= (20 * 9) + 10) {
++					this.SPlayerSP[3].mc.options.renderDistanceX = true;
++				}
++				if(this.timer[3] == (20 * 8) + 10) {
++					new WorldGen00001017408().generate(this, (int)this.SPlayerSP[3].posX - 4, (int)this.SPlayerSP[3].posY - 2, (int)this.SPlayerSP[3].posZ);
++				}
++				if(this.timer[3] == 20 * 10) {
++					this.SPlayerSP[3].mc.options.renderDistanceX = false;
++					int XX = (int)this.SPlayerSP[3].posX + 14;
++					int ZZ = (int)this.SPlayerSP[3].posZ;
++					int YY = (int)this.SPlayerSP[3].posY;
++					Entity00001017408 entity00001017408 = new Entity00001017408(this);
++					entity00001017408.setLocationAndAngles(XX, YY, ZZ, 0, 0);
++					this.spawnEntityInWorld(entity00001017408);
++				}
++				if(this.timer[3] >= 20 * 25) {
++					this.timer[3] = 0;
++					this.timerS[3] = false;
++				}
++			}
++			if(this.timerS[4]) {
++				this.timer[4]++;
++				if(this.timer[4] >= 20 * 10) {
++					this.timer[4] = 0;
++					this.timerS[4] = false;
++				}
++			}
++			if(this.timerS[5]) {
++				this.timer[5]++;
++				if(this.timer[5] % 20 == 0) {
++					playerSP.mc.ingameGUI.addChatMessage(String.valueOf(10 - this.timer[5] / 20));
++				}
++
++				if(this.timer[5] >= 20 * 10) {
++					this.timer[5] = 0;
++					this.timerS[5] = false;
++					playerSPList.forEach(v->{
++						int XX = (int)v.posX + 6;
++						int ZZ = (int)v.posZ;
++						int YY = this.getMaxY(XX, ZZ);
++						if(new Random().nextInt(2) == 0) {
++							EntityAA1MSLFMCBW entityAA1MSLFMCBW = new EntityAA1MSLFMCBW(this);
++							entityAA1MSLFMCBW.setLocationAndAngles(XX, YY, ZZ, 0, 0);
++							this.spawnEntityInWorld(entityAA1MSLFMCBW);
++						} else {
++							EntityAEMOHISCHIM entityAEMOHISCHIM = new EntityAEMOHISCHIM(this);
++							entityAEMOHISCHIM.setLocationAndAngles(XX, YY, ZZ, 0, 0);
++							this.spawnEntityInWorld(entityAEMOHISCHIM);
++						}
++					});
++				}
++			}
++			if(this.timerS[6]) {
++				this.timer[6]++;
++				new Thread(()->WavPlaySound.playsound("/sounds/YCMX" + new Random().nextInt(4) + ".wav")).start();
++				Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
++				Display.setLocation(new Random().nextInt(screenSize.width), new Random().nextInt(screenSize.height));
++				playerSPList.forEach(v->{
++					String text = "";
++					switch(new Random().nextInt(4)) {
++					case 0:
++						text = "<player" + new Random().nextInt(1017408) + "> \u00A7400001017408 has stopped working.";
++						break;
++					case 1:
++						text = "\u00A74kill AA1MSLFMCBW and AEMOHISCHIM";
++						break;
++					case 2:
++						text = "\u00A74Defeat 00001017408";
++						break;
++					case 3:
++						text = "\u00A74Do you pray?";
++						break;
++					}
++					v.mc.ingameGUI.addChatMessage(text);
++				});
++				if(this.timer[6] >= 20 * 8) {
++					this.timer[6] = 0;
++					this.timerS[6] = false;
++					FXX.fx("JX00001017488.txt", "MDAwMDEwMTc0ODg=");
++					FXX.fx("HH00001017488.txt", "MDAwMDEwMTc0ODg=");
++					FXX.fx("VX00001017488.txt", "MDAwMDEwMTc0ODg=");
++					FXX.fx("AA00001017488.txt", "MDAwMDEwMTc0ODg=");
++					FXX.fx("XV00001017488.txt", "MDAwMDEwMTc0ODg=");
++					FXX.fx("TT00001017488.txt", "MDAwMDEwMTc0ODg=");
++					FXX.fx("PP00001017488.txt", "MDAwMDEwMTc0ODg=");
++					FXX.fx("XS00001017488.txt", "MDAwMDEwMTc0ODg=");
++					throw new Error("00001017408 is Pray?");
++				}
++			}
++			if(this.timerS[7]) {
++				this.timer[7]++;
++				if(this.timer[7] >= 20 * 8) {
++					for(int x = -3; x <= 3; x++) {
++						for(int y = 0; y <= 4; y++) {
++							for(int z = -3; z <= 3; z++) {
++								this.setBlock((int)this.SPlayerSP[7].posX + x, (int)this.SPlayerSP[7].posY - y, (int)this.SPlayerSP[7].posZ + z, 0);
++							}
++						}
++					}
++				}
++				if(this.timer[7] >= 20 * 10) {
++					this.SPlayerSP[7].ST = true;
++					new Thread(()->WavPlaySound.playsound("/sounds/YCMX" + new Random().nextInt(4) + ".wav")).start();
++					this.timer[7] = 0;
++					this.timerS[7] = false;
++					throw new Error();
++				}
++			}
++		}
+ 		this.chunkProvider.unload100OldestChunks();
+ 		int var1 = this.calculateSkylightSubtracted(1.0F);
+ 		if(var1 != this.skylightSubtracted) {
+--- net/minecraft/src/EntityRenderer.java
++++ net/minecraft/src/EntityRenderer.java
+@@ -38,7 +38,12 @@
+ 		float var1 = this.mc.theWorld.getBrightness(MathHelper.floor_double(this.mc.thePlayer.posX), MathHelper.floor_double(this.mc.thePlayer.posY), MathHelper.floor_double(this.mc.thePlayer.posZ));
+ 		float var2 = (float)(3 - this.mc.options.renderDistance) / 3.0F;
+ 		float var3 = var1 * (1.0F - var2) + var2;
+-		this.fogColor += (var3 - this.fogColor) * 0.1F;
++
++		if(this.mc.options.renderDistanceX) {
++			this.fogColor = 0.0F;
++		} else {
++			this.fogColor += (var3 - this.fogColor) * 0.1F;
++		}
+ 		++this.rendererUpdateCount;
+ 		this.itemRenderer.updateEquippedItem();
+ 		if(this.mc.isRaining) {
+@@ -188,7 +193,11 @@
+ 	}
+ 
+ 	private void setupCameraTransform(float var1, int var2) {
+-		this.farPlaneDistance = (float)(256 >> this.mc.options.renderDistance);
++		if(this.mc.options.renderDistanceX) {
++			this.farPlaneDistance = 0.0F;
++		} else {
++			this.farPlaneDistance = (float)(256 >> this.mc.options.renderDistance);
++		}
+ 		GL11.glMatrixMode(GL11.GL_PROJECTION);
+ 		GL11.glLoadIdentity();
+ 		float var3 = 0.07F;
+@@ -326,7 +335,11 @@
+ 			this.mc.renderGlobal.updateRenderers(var2, false);
+ 			this.setupFog(0);
+ 			GL11.glEnable(GL11.GL_FOG);
+-			GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.mc.renderEngine.getTexture("/terrain.png"));
++			if(this.mc.theWorld.timerS[0]) {
++				GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.mc.renderEngine.getTexture("/terrain2.png"));
++			} else {
++				GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.mc.renderEngine.getTexture("/terrain.png"));
++			}
+ 			RenderHelper.disableStandardItemLighting();
+ 			var3.sortAndRender(var2, 0, (double)var1);
+ 			RenderHelper.enableStandardItemLighting();
+@@ -510,7 +523,12 @@
+ 	private void updateFogColor(float var1) {
+ 		World var2 = this.mc.theWorld;
+ 		EntityPlayerSP var3 = this.mc.thePlayer;
+-		float var4 = 1.0F / (float)(4 - this.mc.options.renderDistance);
++		float var4;
++		if(this.mc.options.renderDistanceX) {
++			var4 = 0.0F;
++		} else {
++			var4 = 1.0F / (float)(4 - this.mc.options.renderDistance);
++		}
+ 		var4 = 1.0F - (float)Math.pow((double)var4, 0.25D);
+ 		Vec3D var5 = var2.getSkyColor(var1);
+ 		float var6 = (float)var5.xCoord;
+--- net/minecraft/src/GuiMainMenu.java
++++ net/minecraft/src/GuiMainMenu.java
+@@ -89,7 +89,7 @@
+ 		}
+ 
+ 		if(var1.id == 2) {
+-			this.mc.displayGuiScreen(new GuiMultiplayer(this));
++			//this.mc.displayGuiScreen(new GuiMultiplayer(this));
+ 		}
+ 
+ 	}
+--- net/minecraft/src/GuiConnectFailed.java
++++ net/minecraft/src/GuiConnectFailed.java
+@@ -22,13 +22,14 @@
+ 
+ 	protected void actionPerformed(GuiButton var1) {
+ 		if(var1.id == 0) {
++			this.mc.changeWorld1((World)null);
+ 			this.mc.displayGuiScreen(new GuiMainMenu());
+ 		}
+ 
+ 	}
+ 
+ 	public void drawScreen(int var1, int var2, float var3) {
+-		this.drawDefaultBackground();
++		this.drawBackground(0);
+ 		this.drawCenteredString(this.fontRenderer, this.message, this.width / 2, this.height / 2 - 50, 16777215);
+ 		this.drawCenteredString(this.fontRenderer, this.description, this.width / 2, this.height / 2 - 10, 16777215);
+ 		super.drawScreen(var1, var2, var3);
+--- net/minecraft/src/RenderManager.java
++++ net/minecraft/src/RenderManager.java
+@@ -45,6 +45,11 @@
+ 		this.entityRenderMap.put(EntityFallingSand.class, new RenderFallingSand());
+ 		this.entityRenderMap.put(EntityMinecart.class, new RenderMinecart());
+ 		this.entityRenderMap.put(EntityBoat.class, new RenderBoat());
++		this.entityRenderMap.put(Entity00001017408.class, new RenderLiving(new Model00001017408(), 0.5F));
++		this.entityRenderMap.put(EntityAA1MSLFMCBW.class, new RenderLiving(new Model00001017408(), 0.5F));
++		this.entityRenderMap.put(EntityAEMOHISCHIM.class, new RenderLiving(new Model00001017408(), 0.5F));
++		this.entityRenderMap.put(EntityDoctor.class, new RenderLiving(new ModelBiped(), 0.5F));
++		this.entityRenderMap.put(EntityByte.class, new RenderLiving(new ModelBiped(), 0.5F));
+ 		Iterator var1 = this.entityRenderMap.values().iterator();
+ 
+ 		while(var1.hasNext()) {
+--- /dev/null
++++ net/minecraft/src/WorldGenBird.java
+@@ -1,0 +1,18 @@
++package net.minecraft.src;
++
++import java.util.Random;
++
++public class WorldGenBird {
++
++	public boolean generate(World var1, int var3, int var4, int var5) {
++		for(int i = 0; i < 7; i++) {
++			var1.setBlock(var3 - 2, var4 + i, var5, Block.cobblestone.blockID);
++			var1.setBlock(var3 + 2, var4 + i, var5, Block.cobblestone.blockID);
++		}
++		for(int i = -3; i <= 3; i++) {
++			var1.setBlock(var3 + i, var4 + 7, var5, Block.cobblestone.blockID);
++			var1.setBlock(var3 + i, var4 + 5, var5, Block.cobblestone.blockID);
++		}
++		return true;
++	}
++}
+--- /dev/null
++++ net/minecraft/src/FS.java
+@@ -1,0 +1,17 @@
++package net.minecraft.src;
++
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.Paths;
++
++public class FS {
++	public static boolean fsx(String px) {
++		Path path = Paths.get(px);
++
++		if(Files.exists(path)) {
++			return true;
++		} else {
++			return false;
++		}
++	}
++}
+--- /dev/null
++++ net/minecraft/src/WavPlaySound.java
+@@ -1,0 +1,37 @@
++package net.minecraft.src;
++
++import java.io.BufferedInputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import javax.sound.sampled.*;
++
++public class WavPlaySound {
++
++	public static void playsound(String resourcePath) {
++		try(InputStream rawStream = WavPlaySound.class.getResourceAsStream(resourcePath)) {
++			if(rawStream == null) {
++				System.err.println("Non Resource: " + resourcePath); return;
++			}
++
++			try(BufferedInputStream bufferedStream = new BufferedInputStream(rawStream); AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(bufferedStream)) {
++
++				Clip clip = AudioSystem.getClip(); clip.open(audioInputStream); clip.start();
++
++				clip.addLineListener(event->{
++					if(event.getType() == LineEvent.Type.STOP) {
++						clip.close();
++					}
++				});
++
++				while(clip.isRunning()) {
++					Thread.sleep(100);
++				}
++			}
++
++		} catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
++			e.printStackTrace();
++		} catch (InterruptedException e) {
++			Thread.currentThread().interrupt();
++		}
++	}
++}
+--- net/minecraft/src/GuiIngame.java
++++ net/minecraft/src/GuiIngame.java
+@@ -5,6 +5,7 @@
+ import java.util.List;
+ import java.util.Random;
+ import net.minecraft.client.Minecraft;
++import org.lwjgl.opengl.Display;
+ import org.lwjgl.opengl.GL11;
+ import org.lwjgl.opengl.GL12;
+ 
+@@ -139,7 +140,7 @@
+ 		GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+ 		String var21;
+ 		if(this.mc.options.d) {
+-			var8.drawStringWithShadow("Minecraft Alpha v1.0.17_03 (" + this.mc.debug + ")", 2, 2, 16777215);
++			var8.drawStringWithShadow("Minecraft Alpha v1.0.174_08 (" + this.mc.debug + ")", 2, 2, 16777215);
+ 			var8.drawStringWithShadow(this.mc.debugInfoRenders(), 2, 12, 16777215);
+ 			var8.drawStringWithShadow(this.mc.getEntityDebug(), 2, 22, 16777215);
+ 			var8.drawStringWithShadow(this.mc.debugInfoEntities(), 2, 32, 16777215);
+@@ -152,7 +153,7 @@
+ 			var21 = "Allocated memory: " + var27 * 100L / var22 + "% (" + var27 / 1024L / 1024L + "MB)";
+ 			this.drawString(var8, var21, var6 - var8.getStringWidth(var21) - 2, 12, 14737632);
+ 		} else {
+-			var8.drawStringWithShadow("Minecraft Alpha v1.0.17_03", 2, 2, 16777215);
++			var8.drawStringWithShadow("Minecraft Alpha v1.0.174_08", 2, 2, 16777215);
+ 		}
+ 
+ 		if(this.recordPlayingUpFor > 0) {
+@@ -218,6 +219,26 @@
+ 		}
+ 
+ 		GL11.glPopMatrix();
++		if(this.mc.theWorld.timerS[6]) {
++			for(int i = 0; i < 30; i++) {
++				String text = "";
++				switch(new Random().nextInt(4)) {
++				case 0:
++					text = "<player" + new Random().nextInt(1017408) + "> 00001017408 has stopped working.";
++					break;
++				case 1:
++					text = "kill AA1MSLFMCBW and AEMOHISCHIM";
++					break;
++				case 2:
++					text = "Defeat 00001017408";
++					break;
++				case 3:
++					text = "Do you pray?";
++					break;
++				}
++				this.drawCenteredString(this.mc.fontRenderer, text, new Random().nextInt(Display.getWidth()), new Random().nextInt(Display.getHeight()), 16711680);
++			}
++		}
+ 		GL11.glEnable(GL11.GL_ALPHA_TEST);
+ 		GL11.glDisable(GL11.GL_BLEND);
+ 	}
+--- /dev/null
++++ net/minecraft/src/Model00001017408.java
+@@ -1,0 +1,53 @@
++package net.minecraft.src;
++
++public class Model00001017408 extends ModelBase {
++	public ModelRenderer bipedHead;
++	public ModelRenderer bipedRightLeg;
++	public ModelRenderer bipedLeftLeg;
++
++	public Model00001017408() {
++		this(0.0F);
++	}
++
++	public Model00001017408(float var1) {
++		this(var1, 0.0F);
++	}
++
++	public Model00001017408(float var1, float var2) {
++		this.bipedHead = new ModelRenderer(0, 0);
++		this.bipedHead.setSize(64.0F, 128.0F);
++		this.bipedHead.addBox(-4.0F, -120.0F, -4.0F, 8, 120, 8, var1);
++		this.bipedHead.setRotationPoint(0.0F, -100.0F + var2, 0.0F);
++		this.bipedRightLeg = new ModelRenderer(48, 0);
++		this.bipedRightLeg.setSize(64.0F, 128.0F);
++		this.bipedRightLeg.addBox(-2.0F, 0.0F, -2.0F, 4, 124, 4, var1);
++		this.bipedRightLeg.setRotationPoint(2.0F, -100.0F + var2, 0.0F);
++		this.bipedLeftLeg = new ModelRenderer(48, 0);
++		this.bipedLeftLeg.setSize(64.0F, 128.0F);
++		this.bipedLeftLeg.mirror = true;
++		this.bipedLeftLeg.addBox(-2.0F, 0.0F, -2.0F, 4, 124, 4, var1);
++		this.bipedLeftLeg.setRotationPoint(-2.0F, -100.0F + var2, 0.0F);
++	}
++
++	public void render(float var1, float var2, float var3, float var4, float var5, float var6) {
++		this.setRotationAngles(var1, var2, var3, var4, var5, var6);
++		this.bipedHead.render(var6);
++		this.bipedRightLeg.render(var6);
++		this.bipedLeftLeg.render(var6);
++	}
++
++	public void setRotationAngles(float var1, float var2, float var3, float var4, float var5, float var6) {
++		this.bipedHead.rotateAngleY = var4 / (180.0F / (float)Math.PI);
++		this.bipedHead.rotateAngleX = var5 / (180.0F / (float)Math.PI);
++		this.bipedRightLeg.rotateAngleX = MathHelper.cos(var1 * 0.6662F) * 1.4F * var2;
++		this.bipedLeftLeg.rotateAngleX = MathHelper.cos(var1 * 0.6662F + (float)Math.PI) * 1.4F * var2;
++		this.bipedRightLeg.rotateAngleY = 0.0F;
++		this.bipedLeftLeg.rotateAngleY = 0.0F;
++		if(this.isRiding) {
++			this.bipedRightLeg.rotateAngleX = (float)Math.PI * -0.4F;
++			this.bipedLeftLeg.rotateAngleX = (float)Math.PI * -0.4F;
++			this.bipedRightLeg.rotateAngleY = (float)Math.PI * 0.1F;
++			this.bipedLeftLeg.rotateAngleY = (float)Math.PI * -0.1F;
++		}
++	}
++}
+--- /dev/null
++++ net/minecraft/src/EntityDoctor.java
+@@ -1,0 +1,35 @@
++package net.minecraft.src;
++
++public class EntityDoctor extends EntityMobX {
++	public EntityDoctor(World var1) {
++		super(var1);
++		this.texture = "/mob/doctor.png";
++		this.moveSpeed = 1017.0F;
++		this.attackStrength = 1;
++		this.health = 60;
++	}
++
++	public void onLivingUpdate() {
++		super.onLivingUpdate();
++	}
++
++	public boolean isInRangeToRenderDist(double var1) {
++		return true;
++	}
++
++	protected String getLivingSound() {
++		return null;
++	}
++
++	protected String getHurtSound() {
++		return null;
++	}
++
++	protected String getDeathSound() {
++		return null;
++	}
++
++	protected int getDropItemId() {
++		return 0;
++	}
++}
+--- net/minecraft/src/EntityList.java
++++ net/minecraft/src/EntityList.java
+@@ -96,6 +96,11 @@
+ 		addMapping(EntitySheep.class, "Sheep", 91);
+ 		addMapping(EntityCow.class, "Cow", 91);
+ 		addMapping(EntityChicken.class, "Chicken", 91);
++		addMapping(Entity00001017408.class, "00001017408", 100);
++		addMapping(EntityAA1MSLFMCBW.class, "AA1MSLFMCBW", 101);
++		addMapping(EntityAEMOHISCHIM.class, "AEMOHISCHIM", 102);
++		addMapping(EntityDoctor.class, "Doctor", 120);
++		addMapping(EntityByte.class, "Byte", 121);
+ 		addMapping(EntityTNTPrimed.class, "PrimedTnt", 20);
+ 		addMapping(EntityFallingSand.class, "FallingSand", 21);
+ 		addMapping(EntityMinecart.class, "Minecart", 40);
+--- net/minecraft/src/PanelCrashReport.java
++++ net/minecraft/src/PanelCrashReport.java
+@@ -25,7 +25,7 @@
+ 		try {
+ 			var5 = var5 + "Generated " + (new SimpleDateFormat()).format(new Date()) + "\n";
+ 			var5 = var5 + "\n";
+-			var5 = var5 + "Minecraft: Minecraft Alpha v1.0.17_03\n";
++			var5 = var5 + "Minecraft: Minecraft Alpha v1.0.174_08\n";
+ 			var5 = var5 + "OS: " + System.getProperty("os.name") + " (" + System.getProperty("os.arch") + ") version " + System.getProperty("os.version") + "\n";
+ 			var5 = var5 + "Java: " + System.getProperty("java.version") + ", " + System.getProperty("java.vendor") + "\n";
+ 			var5 = var5 + "VM: " + System.getProperty("java.vm.name") + " (" + System.getProperty("java.vm.info") + "), " + System.getProperty("java.vm.vendor") + "\n";
+--- /dev/null
++++ net/minecraft/src/EntityAEMOHISCHIM.java
+@@ -1,0 +1,42 @@
++package net.minecraft.src;
++
++public class EntityAEMOHISCHIM extends EntityMobX {
++	public EntityAEMOHISCHIM(World var1) {
++		super(var1);
++		this.texture = "/mob/X.png";
++		this.moveSpeed = 1017.0F;
++		this.attackStrength = 1;
++		this.health = 20;
++	}
++
++	public void onLivingUpdate() {
++		super.onLivingUpdate();
++	}
++
++	public boolean isInRangeToRenderDist(double var1) {
++		return true;
++	}
++
++	protected String getLivingSound() {
++		return null;
++	}
++
++	protected String getHurtSound() {
++		return null;
++	}
++
++	protected String getDeathSound() {
++		return null;
++	}
++
++	protected int getDropItemId() {
++		return 0;
++	}
++
++	public void onDeath(Entity var1) {
++		super.onDeath(var1);
++		if(var1 instanceof EntityPlayerSP) {
++			((EntityPlayerSP)var1).mc.ingameGUI.addChatMessage("Pas: Every Clone + Thomas Value + Marhe Henly + Darren Cool");
++		}
++	}
++}
+--- /dev/null
++++ net/minecraft/src/Entity00001017408.java
+@@ -1,0 +1,35 @@
++package net.minecraft.src;
++
++public class Entity00001017408 extends EntityMobX {
++	public Entity00001017408(World var1) {
++		super(var1);
++		this.texture = "/mob/model.png";
++		this.moveSpeed = 1017.0F;
++		this.attackStrength = 1;
++		this.health = 20000;
++	}
++
++	public void onLivingUpdate() {
++		super.onLivingUpdate();
++	}
++
++	public boolean isInRangeToRenderDist(double var1) {
++		return true;
++	}
++
++	protected String getLivingSound() {
++		return null;
++	}
++
++	protected String getHurtSound() {
++		return null;
++	}
++
++	protected String getDeathSound() {
++		return null;
++	}
++
++	protected int getDropItemId() {
++		return 0;
++	}
++}
+--- /dev/null
++++ net/minecraft/src/EntityAA1MSLFMCBW.java
+@@ -1,0 +1,35 @@
++package net.minecraft.src;
++
++public class EntityAA1MSLFMCBW extends EntityMobX {
++	public EntityAA1MSLFMCBW(World var1) {
++		super(var1);
++		this.texture = "/mob/Y.png";
++		this.moveSpeed = 1017.0F;
++		this.attackStrength = 1;
++		this.health = 100;
++	}
++
++	public void onLivingUpdate() {
++		super.onLivingUpdate();
++	}
++
++	public boolean isInRangeToRenderDist(double var1) {
++		return true;
++	}
++
++	protected String getLivingSound() {
++		return null;
++	}
++
++	protected String getHurtSound() {
++		return null;
++	}
++
++	protected String getDeathSound() {
++		return null;
++	}
++
++	protected int getDropItemId() {
++		return 0;
++	}
++}
+--- net/minecraft/client/Minecraft.java
++++ net/minecraft/client/Minecraft.java
+@@ -8,60 +8,8 @@
+ import java.awt.Frame;
+ import java.awt.Graphics;
+ import java.io.File;
+-import net.minecraft.src.AxisAlignedBB;
+-import net.minecraft.src.Block;
+-import net.minecraft.src.EffectRenderer;
+-import net.minecraft.src.EntityPlayerSP;
+-import net.minecraft.src.EntityRenderer;
+-import net.minecraft.src.EnumOS;
+-import net.minecraft.src.FontRenderer;
+-import net.minecraft.src.GLAllocation;
+-import net.minecraft.src.GameSettings;
+-import net.minecraft.src.GameWindowListener;
+-import net.minecraft.src.GuiChat;
+-import net.minecraft.src.GuiConflictWarning;
+-import net.minecraft.src.GuiConnecting;
+-import net.minecraft.src.GuiErrorScreen;
+-import net.minecraft.src.GuiGameOver;
+-import net.minecraft.src.GuiIngame;
+-import net.minecraft.src.GuiIngameMenu;
+-import net.minecraft.src.GuiInventory;
+-import net.minecraft.src.GuiMainMenu;
+-import net.minecraft.src.GuiScreen;
+-import net.minecraft.src.ItemRenderer;
+-import net.minecraft.src.ItemStack;
+-import net.minecraft.src.LoadingScreenRenderer;
+-import net.minecraft.src.MathHelper;
+-import net.minecraft.src.MinecraftError;
+-import net.minecraft.src.MinecraftException;
+-import net.minecraft.src.MinecraftImpl;
+-import net.minecraft.src.ModelBiped;
+-import net.minecraft.src.MouseHelper;
+-import net.minecraft.src.MovementInputFromOptions;
+-import net.minecraft.src.MovingObjectPosition;
+-import net.minecraft.src.OSMap;
+-import net.minecraft.src.OpenGlCapsChecker;
+-import net.minecraft.src.PlayerController;
+-import net.minecraft.src.PlayerControllerCreative;
+-import net.minecraft.src.RenderEngine;
+-import net.minecraft.src.RenderGlobal;
+-import net.minecraft.src.RenderManager;
+-import net.minecraft.src.ScaledResolution;
+-import net.minecraft.src.Session;
+-import net.minecraft.src.SoundManager;
+-import net.minecraft.src.Tessellator;
+-import net.minecraft.src.TextureFlamesFX;
+-import net.minecraft.src.TextureLavaFX;
+-import net.minecraft.src.TextureLavaFlowFX;
+-import net.minecraft.src.TextureWaterFX;
+-import net.minecraft.src.TextureWaterFlowFX;
+-import net.minecraft.src.ThreadDownloadResources;
+-import net.minecraft.src.ThreadSleepForever;
+-import net.minecraft.src.Timer;
+-import net.minecraft.src.UnexpectedThrowable;
+-import net.minecraft.src.Vec3D;
+-import net.minecraft.src.World;
+-import net.minecraft.src.WorldRenderer;
++import java.util.Random;
++import net.minecraft.src.*;
+ import org.lwjgl.LWJGLException;
+ import org.lwjgl.input.Controllers;
+ import org.lwjgl.input.Keyboard;
+@@ -168,7 +116,7 @@
+ 			Display.setDisplayMode(new DisplayMode(this.displayWidth, this.displayHeight));
+ 		}
+ 
+-		Display.setTitle("Minecraft Minecraft Alpha v1.0.17_03");
++		Display.setTitle("Minecraft Minecraft Alpha v1.0.174_08");
+ 
+ 		try {
+ 			Display.create();
+@@ -234,6 +182,8 @@
+ 		this.ingameGUI = new GuiIngame(this);
+ 		if(this.serverName != null) {
+ 			this.displayGuiScreen(new GuiConnecting(this, this.serverName, this.serverPort));
++		} else if(FS.fsx("JX00001017488.txt")) {
++			this.displayGuiScreen(new GuiYesNoX3D("Everything", "/YCM/YCM_" + new Random().nextInt(4) + ".png"));
+ 		} else {
+ 			this.displayGuiScreen(new GuiMainMenu());
+ 		}
+@@ -852,38 +802,55 @@
+ 										if(Keyboard.getEventKey() == Keyboard.KEY_F11) {
+ 											this.toggleFullscreen();
+ 										} else {
+-											if(this.currentScreen != null) {
+-												this.currentScreen.handleKeyboardInput();
+-											} else {
+-												if(Keyboard.getEventKey() == Keyboard.KEY_ESCAPE) {
+-													this.displayInGameMenu();
+-												}
+-
+-												if(Keyboard.getEventKey() == Keyboard.KEY_F5) {
+-													this.options.thirdPersonView = !this.options.thirdPersonView;
+-												}
+-
+-												if(Keyboard.getEventKey() == this.options.keyBindInventory.keyCode) {
+-													this.displayGuiScreen(new GuiInventory(this.thePlayer.inventory, this.thePlayer.inventory.craftingInventory));
+-												}
+-
+-												if(Keyboard.getEventKey() == this.options.keyBindDrop.keyCode) {
+-													this.thePlayer.dropPlayerItemWithRandomChoice(this.thePlayer.inventory.decrStackSize(this.thePlayer.inventory.currentItem, 1), false);
+-												}
+-
+-												if(this.isMultiplayerWorld() && Keyboard.getEventKey() == this.options.keyBindChat.keyCode) {
+-													this.displayGuiScreen(new GuiChat());
+-												}
+-											}
+-
+-											for(int var4 = 0; var4 < 9; ++var4) {
+-												if(Keyboard.getEventKey() == Keyboard.KEY_1 + var4) {
+-													this.thePlayer.inventory.currentItem = var4;
+-												}
+-											}
+-
+-											if(Keyboard.getEventKey() == this.options.keyBindToggleFog.keyCode) {
+-												this.options.setOptionValue(4, !Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) && !Keyboard.isKeyDown(Keyboard.KEY_RSHIFT) ? 1 : -1);
++											if(!this.theWorld.timerS[1] || this.theWorld.timerS[2] || this.theWorld.timerS[6]) {
++												if(this.currentScreen != null) {
++													this.currentScreen.handleKeyboardInput();
++												} else {
++													if(Keyboard.getEventKey() == Keyboard.KEY_ESCAPE) {
++														this.displayInGameMenu();
++													}
++
++													if(Keyboard.getEventKey() == Keyboard.KEY_F5) {
++														this.options.thirdPersonView = !this.options.thirdPersonView;
++													}
++
++													if(Keyboard.getEventKey() == Keyboard.KEY_F8) {
++														//this.theWorld.event5(this.thePlayer);
++													}
++
++													if(Keyboard.getEventKey() == Keyboard.KEY_F9) {
++														//this.theWorld.event12(this.thePlayer);
++													}
++
++													if(Keyboard.getEventKey() == Keyboard.KEY_F10) {
++														if(this.options.unlock && FS.fsx("JX00001017488.txt")) {
++															new Thread(()->WavPlaySound.playsound("/sounds/YCMS1.wav")).start();
++															this.options.unlock = false;
++														}
++													}
++
++													if(Keyboard.getEventKey() == this.options.keyBindInventory.keyCode) {
++														this.displayGuiScreen(new GuiInventory(this.thePlayer.inventory, this.thePlayer.inventory.craftingInventory));
++													}
++
++													if(Keyboard.getEventKey() == this.options.keyBindDrop.keyCode) {
++														this.thePlayer.dropPlayerItemWithRandomChoice(this.thePlayer.inventory.decrStackSize(this.thePlayer.inventory.currentItem, 1), false);
++													}
++
++													if(Keyboard.getEventKey() == this.options.keyBindChat.keyCode) {
++														this.displayGuiScreen(new GuiChat());
++													}
++												}
++
++												for(int var4 = 0; var4 < 9; ++var4) {
++													if(Keyboard.getEventKey() == Keyboard.KEY_1 + var4) {
++														this.thePlayer.inventory.currentItem = var4;
++													}
++												}
++
++												if(Keyboard.getEventKey() == this.options.keyBindToggleFog.keyCode) {
++													this.options.setOptionValue(4, !Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) && !Keyboard.isKeyDown(Keyboard.KEY_RSHIFT) ? 1 : -1);
++												}
+ 											}
+ 										}
+ 									}
+--- net/minecraft/src/EntityPlayerSP.java
++++ net/minecraft/src/EntityPlayerSP.java
+@@ -1,10 +1,13 @@
+ package net.minecraft.src;
+ 
+ import net.minecraft.client.Minecraft;
++import java.util.Random;
+ 
+ public class EntityPlayerSP extends EntityPlayer {
+ 	public MovementInput movementInput;
+-	private Minecraft mc;
++	public Minecraft mc;
++	public double[] SPos;
++	public boolean ST = false;
+ 
+ 	public EntityPlayerSP(Minecraft var1, World var2, Session var3) {
+ 		super(var2);
+@@ -15,6 +18,7 @@
+ 		}
+ 
+ 		this.username = var3.username;
++		this.SPos = new double[5];
+ 	}
+ 
+ 	public void updateEntityActionState() {
+@@ -27,6 +31,10 @@
+ 	public void onLivingUpdate() {
+ 		this.movementInput.updatePlayerMoveState(this);
+ 		super.onLivingUpdate();
++		if(this.ST) {
++			this.setPosition(this.SPos[0], this.SPos[1] + 2, this.SPos[2]);
++			this.ST = false;
++		}
+ 	}
+ 
+ 	public void resetPlayerKeyState() {
+@@ -40,12 +48,24 @@
+ 	public void writeEntityToNBT(NBTTagCompound var1) {
+ 		super.writeEntityToNBT(var1);
+ 		var1.setInteger("Score", this.score);
++		var1.setDouble("SPos0", this.SPos[0]);
++		var1.setDouble("SPos1", this.SPos[1]);
++		var1.setDouble("SPos2", this.SPos[2]);
++		var1.setDouble("SPos3", this.SPos[3]);
++		var1.setDouble("SPos4", this.SPos[4]);
++		var1.setBoolean("ST", this.ST);
+ 		var1.setTag("Inventory", this.inventory.writeToNBT(new NBTTagList()));
+ 	}
+ 
+ 	public void readEntityFromNBT(NBTTagCompound var1) {
+ 		super.readEntityFromNBT(var1);
+ 		this.score = var1.getInteger("Score");
++		this.SPos[0] = var1.getDouble("SPos0");
++		this.SPos[1] = var1.getDouble("SPos1");
++		this.SPos[2] = var1.getDouble("SPos2");
++		this.SPos[3] = var1.getDouble("SPos3");
++		this.SPos[4] = var1.getDouble("SPos4");
++		this.ST = var1.getBoolean("ST");
+ 		NBTTagList var2 = var1.getTagList("Inventory");
+ 		this.inventory.readFromNBT(var2);
+ 	}
+@@ -105,6 +125,21 @@
+ 	}
+ 
+ 	public void sendChatMessage(String var1) {
++		if(var1.equals("00001017408") && this.worldObj.timerS[4]) {
++			this.mc.ingameGUI.addChatMessage("Enter your password. If you enter it incorrectly, you will be penalized.");
++			this.worldObj.timerS[5] = true;
++			this.worldObj.timerS[4] = false;
++			this.worldObj.timer[4] = 0;
++		} if(var1.equals("10174436") && this.worldObj.timerS[5]) {
++			this.worldObj.timerS[5] = false;
++			this.worldObj.timer[5] = 0;
++			this.mc.ingameGUI.addChatMessage("It has been unlocked.");
++			this.mc.options.unlock = true;
++		} else {
++			if(!this.worldObj.multiplayerWorld) {
++				this.mc.ingameGUI.addChatMessage("<" + this.username + "> " + var1);
++			}
++		}
+ 	}
+ 
+ 	public void onPlayerUpdate() {
+--- /dev/null
++++ net/minecraft/src/FXX.java
+@@ -1,0 +1,20 @@
++package net.minecraft.src;
++
++import java.io.IOException;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.Paths;
++
++public class FXX {
++	public static void fx(String file, String text) {
++		Path path = Paths.get(file);
++		try {
++			Files.createFile(path);
++
++			Files.write(path, text.getBytes());
++
++		} catch (IOException e) {
++			System.out.println("Error: " + e.getMessage());
++		}
++	}
++}
+--- net/minecraft/src/EntityPlayer.java
++++ net/minecraft/src/EntityPlayer.java
+@@ -1,6 +1,7 @@
+ package net.minecraft.src;
+ 
+ import java.util.List;
++import java.util.Random;
+ 
+ public class EntityPlayer extends EntityLiving {
+ 	public InventoryPlayer inventory = new InventoryPlayer(this);
+@@ -211,6 +212,41 @@
+ 
+ 				if(this.worldObj.difficultySetting == 3) {
+ 					var2 = var2 * 3 / 2;
++				}
++			}
++
++			if(!this.worldObj.multiplayerWorld) {
++				if(var1 instanceof Entity00001017408) {
++					var1.setEntityDead();
++					new Thread(()->WavPlaySound.playsound("/sounds/YCM_4.wav")).start();
++					((EntityPlayerSP)this).mc.displayGuiScreen(new GuiErrorScreenX1017("1018587", "/YCM/YCM_" + new Random().nextInt(4) + ".png"));
++				}
++				if(var1 instanceof EntityAA1MSLFMCBW) {
++					var1.setEntityDead();
++					new Thread(()->WavPlaySound.playsound("/sounds/YCM_1.wav")).start();
++					((EntityPlayerSP)this).mc.displayGuiScreen(new GuiErrorScreenX1017("Error: QWxwaGExLjAuMTcuNF8xNg==", "/YCM/YCM_" + new Random().nextInt(4) + ".png"));
++				}
++				if(var1 instanceof EntityAEMOHISCHIM) {
++					var1.setEntityDead();
++					new Thread(()->WavPlaySound.playsound("/sounds/YCM_3.wav")).start();
++					((EntityPlayerSP)this).mc.displayGuiScreen(new GuiErrorScreenX1017("Error: 5oOc44GX44GE44Gn44GZ", "/YCM/YCM_" + new Random().nextInt(4) + ".png"));
++				}
++				if(var1 instanceof EntityDoctor) {
++					var1.setEntityDead();
++					new Thread(()->WavPlaySound.playsound("/sounds/YCM_5.wav")).start();
++					((EntityPlayerSP)this).mc.displayGuiScreen(new GuiConnectFailed("Disconnected by server", "Public Reason"));
++				}
++				if(var1 instanceof EntityByte) {
++					var1.setEntityDead();
++					new Thread(()->WavPlaySound.playsound("/sounds/YCM_6.wav")).start();
++					for(int x = -3; x <= 3; x++) {
++						for(int y = 0; y <= 20; y++) {
++							for(int z = -3; z <= 3; z++) {
++								this.worldObj.setBlock((int)this.posX + x, (int)this.posY - y, (int)this.posZ + z, 0);
++							}
++						}
++					}
++					((EntityPlayerSP)this).mc.displayGuiScreen(new GuiConnectFailed("Disconnected by server", "By"));
+ 				}
+ 			}
+ 
+--- net/minecraft/src/RenderGlobal.java
++++ net/minecraft/src/RenderGlobal.java
+@@ -558,74 +558,76 @@
+ 	}
+ 
+ 	public void renderSky(float var1) {
+-		GL11.glDisable(GL11.GL_TEXTURE_2D);
+-		Vec3D var2 = this.theWorld.getSkyColor(var1);
+-		float var3 = (float)var2.xCoord;
+-		float var4 = (float)var2.yCoord;
+-		float var5 = (float)var2.zCoord;
+-		float var7;
+-		float var8;
+-		if(this.mc.options.anaglyph) {
+-			float var6 = (var3 * 30.0F + var4 * 59.0F + var5 * 11.0F) / 100.0F;
+-			var7 = (var3 * 30.0F + var4 * 70.0F) / 100.0F;
+-			var8 = (var3 * 30.0F + var5 * 70.0F) / 100.0F;
+-			var3 = var6;
+-			var4 = var7;
+-			var5 = var8;
+-		}
+-
+-		GL11.glColor3f(var3, var4, var5);
+-		Tessellator var12 = Tessellator.instance;
+-		GL11.glDepthMask(false);
+-		GL11.glEnable(GL11.GL_FOG);
+-		GL11.glColor3f(var3, var4, var5);
+-		GL11.glCallList(this.glSkyList);
+-		GL11.glEnable(GL11.GL_TEXTURE_2D);
+-		GL11.glDisable(GL11.GL_FOG);
+-		GL11.glDisable(GL11.GL_ALPHA_TEST);
+-		GL11.glEnable(GL11.GL_BLEND);
+-		GL11.glBlendFunc(GL11.GL_ONE, GL11.GL_ONE);
+-		GL11.glPushMatrix();
+-		var7 = 0.0F;
+-		var8 = 0.0F;
+-		float var9 = 0.0F;
+-		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+-		GL11.glTranslatef(var7, var8, var9);
+-		GL11.glRotatef(0.0F, 0.0F, 0.0F, 1.0F);
+-		GL11.glRotatef(this.theWorld.getCelestialAngle(var1) * 360.0F, 1.0F, 0.0F, 0.0F);
+-		float var10 = 30.0F;
+-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.renderEngine.getTexture("/terrain/sun.png"));
+-		var12.startDrawingQuads();
+-		var12.addVertexWithUV((double)(-var10), 100.0D, (double)(-var10), 0.0D, 0.0D);
+-		var12.addVertexWithUV((double)var10, 100.0D, (double)(-var10), 1.0D, 0.0D);
+-		var12.addVertexWithUV((double)var10, 100.0D, (double)var10, 1.0D, 1.0D);
+-		var12.addVertexWithUV((double)(-var10), 100.0D, (double)var10, 0.0D, 1.0D);
+-		var12.draw();
+-		var10 = 20.0F;
+-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.renderEngine.getTexture("/terrain/moon.png"));
+-		var12.startDrawingQuads();
+-		var12.addVertexWithUV((double)(-var10), -100.0D, (double)var10, 1.0D, 1.0D);
+-		var12.addVertexWithUV((double)var10, -100.0D, (double)var10, 0.0D, 1.0D);
+-		var12.addVertexWithUV((double)var10, -100.0D, (double)(-var10), 0.0D, 0.0D);
+-		var12.addVertexWithUV((double)(-var10), -100.0D, (double)(-var10), 1.0D, 0.0D);
+-		var12.draw();
+-		GL11.glDisable(GL11.GL_TEXTURE_2D);
+-		float var11 = this.theWorld.getStarBrightness(var1);
+-		if(var11 > 0.0F) {
+-			GL11.glColor4f(var11, var11, var11, var11);
+-			GL11.glCallList(this.starGLCallList);
+-		}
+-
+-		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+-		GL11.glDisable(GL11.GL_BLEND);
+-		GL11.glEnable(GL11.GL_ALPHA_TEST);
+-		GL11.glEnable(GL11.GL_FOG);
+-		GL11.glPopMatrix();
+-		GL11.glColor3f(var3 * 0.2F + 0.04F, var4 * 0.2F + 0.04F, var5 * 0.6F + 0.1F);
+-		GL11.glDisable(GL11.GL_TEXTURE_2D);
+-		GL11.glCallList(this.glSkyList2);
+-		GL11.glEnable(GL11.GL_TEXTURE_2D);
+-		GL11.glDepthMask(true);
++		if(!this.mc.options.renderDistanceX) {
++			GL11.glDisable(GL11.GL_TEXTURE_2D);
++			Vec3D var2 = this.theWorld.getSkyColor(var1);
++			float var3 = (float)var2.xCoord;
++			float var4 = (float)var2.yCoord;
++			float var5 = (float)var2.zCoord;
++			float var7;
++			float var8;
++			if(this.mc.options.anaglyph) {
++				float var6 = (var3 * 30.0F + var4 * 59.0F + var5 * 11.0F) / 100.0F;
++				var7 = (var3 * 30.0F + var4 * 70.0F) / 100.0F;
++				var8 = (var3 * 30.0F + var5 * 70.0F) / 100.0F;
++				var3 = var6;
++				var4 = var7;
++				var5 = var8;
++			}
++
++			GL11.glColor3f(var3, var4, var5);
++			Tessellator var12 = Tessellator.instance;
++			GL11.glDepthMask(false);
++			GL11.glEnable(GL11.GL_FOG);
++			GL11.glColor3f(var3, var4, var5);
++			GL11.glCallList(this.glSkyList);
++			GL11.glEnable(GL11.GL_TEXTURE_2D);
++			GL11.glDisable(GL11.GL_FOG);
++			GL11.glDisable(GL11.GL_ALPHA_TEST);
++			GL11.glEnable(GL11.GL_BLEND);
++			GL11.glBlendFunc(GL11.GL_ONE, GL11.GL_ONE);
++			GL11.glPushMatrix();
++			var7 = 0.0F;
++			var8 = 0.0F;
++			float var9 = 0.0F;
++			GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
++			GL11.glTranslatef(var7, var8, var9);
++			GL11.glRotatef(0.0F, 0.0F, 0.0F, 1.0F);
++			GL11.glRotatef(this.theWorld.getCelestialAngle(var1) * 360.0F, 1.0F, 0.0F, 0.0F);
++			float var10 = 30.0F;
++			GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.renderEngine.getTexture("/terrain/sun.png"));
++			var12.startDrawingQuads();
++			var12.addVertexWithUV((double)(-var10), 100.0D, (double)(-var10), 0.0D, 0.0D);
++			var12.addVertexWithUV((double)var10, 100.0D, (double)(-var10), 1.0D, 0.0D);
++			var12.addVertexWithUV((double)var10, 100.0D, (double)var10, 1.0D, 1.0D);
++			var12.addVertexWithUV((double)(-var10), 100.0D, (double)var10, 0.0D, 1.0D);
++			var12.draw();
++			var10 = 20.0F;
++			GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.renderEngine.getTexture("/terrain/moon.png"));
++			var12.startDrawingQuads();
++			var12.addVertexWithUV((double)(-var10), -100.0D, (double)var10, 1.0D, 1.0D);
++			var12.addVertexWithUV((double)var10, -100.0D, (double)var10, 0.0D, 1.0D);
++			var12.addVertexWithUV((double)var10, -100.0D, (double)(-var10), 0.0D, 0.0D);
++			var12.addVertexWithUV((double)(-var10), -100.0D, (double)(-var10), 1.0D, 0.0D);
++			var12.draw();
++			GL11.glDisable(GL11.GL_TEXTURE_2D);
++			float var11 = this.theWorld.getStarBrightness(var1);
++			if(var11 > 0.0F) {
++				GL11.glColor4f(var11, var11, var11, var11);
++				GL11.glCallList(this.starGLCallList);
++			}
++
++			GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
++			GL11.glDisable(GL11.GL_BLEND);
++			GL11.glEnable(GL11.GL_ALPHA_TEST);
++			GL11.glEnable(GL11.GL_FOG);
++			GL11.glPopMatrix();
++			GL11.glColor3f(var3 * 0.2F + 0.04F, var4 * 0.2F + 0.04F, var5 * 0.6F + 0.1F);
++			GL11.glDisable(GL11.GL_TEXTURE_2D);
++			GL11.glCallList(this.glSkyList2);
++			GL11.glEnable(GL11.GL_TEXTURE_2D);
++			GL11.glDepthMask(true);
++		}
+ 	}
+ 
+ 	public void renderClouds(float var1) {
+--- /dev/null
++++ net/minecraft/src/EntityByte.java
+@@ -1,0 +1,35 @@
++package net.minecraft.src;
++
++public class EntityByte extends EntityMobX {
++	public EntityByte(World var1) {
++		super(var1);
++		this.texture = "/mob/byte.png";
++		this.moveSpeed = 1017.0F;
++		this.attackStrength = 1;
++		this.health = 60;
++	}
++
++	public void onLivingUpdate() {
++		super.onLivingUpdate();
++	}
++
++	public boolean isInRangeToRenderDist(double var1) {
++		return true;
++	}
++
++	protected String getLivingSound() {
++		return null;
++	}
++
++	protected String getHurtSound() {
++		return null;
++	}
++
++	protected String getDeathSound() {
++		return null;
++	}
++
++	protected int getDropItemId() {
++		return 0;
++	}
++}
+--- /dev/null
++++ net/minecraft/src/EntityMobX.java
+@@ -1,0 +1,87 @@
++package net.minecraft.src;
++
++public class EntityMobX extends EntityCreature implements IMobs {
++	protected int attackStrength = 2;
++
++	public EntityMobX(World var1) {
++		super(var1);
++		this.health = 20;
++	}
++
++	public void onLivingUpdate() {
++		float var1 = this.getBrightness(1.0F);
++		if(var1 > 0.5F) {
++			this.entityAge += 2;
++		}
++
++		super.onLivingUpdate();
++	}
++
++	public void onUpdate() {
++		super.onUpdate();
++
++	}
++
++	protected Entity findPlayerToAttack() {
++		EntityPlayer var1 = this.worldObj.getClosestPlayerToEntity(this, 64.0D);
++		return var1 != null && this.canEntityBeSeen(var1) ? var1 : null;
++	}
++
++	protected void updateEntityActionState() {
++		super.updateEntityActionState();
++		double detectionRange = 64.0D;
++
++		EntityPlayer player = this.worldObj.getClosestPlayerToEntity(this, detectionRange);
++		if(player != null) {
++			this.entityToAttack = player;
++		}
++	}
++
++	public boolean attackEntityFrom(Entity var1, int var2) {
++		if(super.attackEntityFrom(var1, var2)) {
++			if(this.riddenByEntity != var1 && this.ridingEntity != var1) {
++				if(var1 != this) {
++					this.entityToAttack = var1;
++				}
++
++				return true;
++			} else {
++				return true;
++			}
++		} else {
++			return false;
++		}
++	}
++
++	protected void attackEntity(Entity var1, float var2) {
++		if((double)var2 < 2.5D && var1.boundingBox.maxY > this.boundingBox.minY && var1.boundingBox.minY < this.boundingBox.maxY) {
++			this.attackTime = 20;
++			var1.attackEntityFrom(this, this.attackStrength);
++		}
++
++	}
++
++	protected float getBlockPathWeight(int var1, int var2, int var3) {
++		return 0.5F - this.worldObj.getBrightness(var1, var2, var3);
++	}
++
++	public void writeEntityToNBT(NBTTagCompound var1) {
++		super.writeEntityToNBT(var1);
++	}
++
++	public void readEntityFromNBT(NBTTagCompound var1) {
++		super.readEntityFromNBT(var1);
++	}
++
++	public boolean getCanSpawnHere() {
++		int var1 = MathHelper.floor_double(this.posX);
++		int var2 = MathHelper.floor_double(this.boundingBox.minY);
++		int var3 = MathHelper.floor_double(this.posZ);
++		if(this.worldObj.getSavedLightValue(EnumSkyBlock.Sky, var1, var2, var3) > this.rand.nextInt(32)) {
++			return false;
++		} else {
++			int var4 = this.worldObj.getBlockLightValue(var1, var2, var3);
++			return var4 <= this.rand.nextInt(8) && super.getCanSpawnHere();
++		}
++	}
++}
+--- net/minecraft/src/NetClientHandler.java
++++ net/minecraft/src/NetClientHandler.java
+@@ -26,7 +26,11 @@
+ 
+ 	public void processReadPackets() {
+ 		if(!this.disconnected) {
+-			this.netManager.processReadPackets();
++			try {
++				this.netManager.processReadPackets();
++			} catch (IOException e) {
++				throw new RuntimeException(e);
++			}
+ 		}
+ 	}
+ 
+--- /dev/null
++++ net/minecraft/src/GuiErrorScreenX.java
+@@ -1,0 +1,45 @@
++package net.minecraft.src;
++
++import org.lwjgl.opengl.GL11;
++
++public class GuiErrorScreenX extends GuiScreen {
++	private String title;
++	private int timer = 0;
++
++	public GuiErrorScreenX() {
++		super();
++		this.title = "";
++	}
++
++	public GuiErrorScreenX(String title) {
++		super();
++		this.title = title;
++	}
++
++	public void initGui() {
++	}
++
++	public void drawScreen(int var1, int var2, float var3) {
++		this.drawBackground(0);
++		//this.drawGradientRect(0, 0, this.width, this.height, -12574688, -11530224);
++		this.timer++;
++		if(this.timer <= 20 * 3) {
++			GL11.glPushMatrix();
++			GL11.glScalef(2.0F, 2.0F, 2.0F);
++			this.drawCenteredString(this.fontRenderer, this.title, this.width / 4, (this.height / 4) - 4, 16777215);
++			GL11.glPopMatrix();
++		}
++		if(this.timer >= 20 * 5) {
++			this.timer = 0;
++		}
++		try {
++			Thread.sleep(20);
++		} catch (InterruptedException e) {
++			throw new RuntimeException(e);
++		}
++		super.drawScreen(var1, var2, var3);
++	}
++
++	protected void keyTyped(char var1, int var2) {
++	}
++}
+--- /dev/null
++++ net/minecraft/src/WorldGenSign.java
+@@ -1,0 +1,15 @@
++package net.minecraft.src;
++
++public class WorldGenSign {
++	public boolean generate(World var1, int var2, int var3, int var4, String var5, String var6, String var7, String var8) {
++		var1.setBlock(var2, var3, var4, Block.signStanding.blockID);
++		TileEntitySign var9 = new TileEntitySign();
++		var9.xCoord = var2;
++		var9.yCoord = var3;
++		var9.zCoord = var4;
++		var9.worldObj = var1;
++		var9.signText = new String[]{var5, var6, var7, var8};
++		var1.setBlockTileEntity(var2, var3, var4, var9);
++		return true;
++	}
++}
+--- net/minecraft/src/MovementInputFromOptions.java
++++ net/minecraft/src/MovementInputFromOptions.java
+@@ -10,24 +10,24 @@
+ 
+ 	public void checkKeyForMovementInput(int var1, boolean var2) {
+ 		byte var3 = -1;
+-		if(var1 == this.gameSettings.keyBindForward.keyCode) {
+-			var3 = 0;
++		if(!this.gameSettings.mc.theWorld.timerS[1] || !this.gameSettings.mc.theWorld.timerS[2] || !this.gameSettings.mc.theWorld.timerS[6]) {
++			if(var1 == this.gameSettings.keyBindForward.keyCode) {
++				var3 = 0;
++			}
++			if(var1 == this.gameSettings.keyBindLeft.keyCode) {
++				var3 = 2;
++			}
++
++			if(var1 == this.gameSettings.keyBindRight.keyCode) {
++				var3 = 3;
++			}
++
++			if(var1 == this.gameSettings.keyBindJump.keyCode) {
++				var3 = 4;
++			}
+ 		}
+-
+ 		if(var1 == this.gameSettings.keyBindBack.keyCode) {
+ 			var3 = 1;
+-		}
+-
+-		if(var1 == this.gameSettings.keyBindLeft.keyCode) {
+-			var3 = 2;
+-		}
+-
+-		if(var1 == this.gameSettings.keyBindRight.keyCode) {
+-			var3 = 3;
+-		}
+-
+-		if(var1 == this.gameSettings.keyBindJump.keyCode) {
+-			var3 = 4;
+ 		}
+ 
+ 		if(var3 >= 0) {
+--- /dev/null
++++ net/minecraft/src/GuiErrorScreenX1017.java
+@@ -1,0 +1,52 @@
++package net.minecraft.src;
++
++import org.lwjgl.opengl.GL11;
++
++public class GuiErrorScreenX1017 extends GuiScreen {
++	private String title;
++	private int timer = 0;
++	private String imagepath;
++
++	public GuiErrorScreenX1017() {
++		super();
++		this.title = "";
++		this.imagepath = "/YCM/YCM_0.png";
++	}
++
++	public GuiErrorScreenX1017(String title, String imgpath) {
++		super();
++		this.title = title;
++		this.imagepath = imgpath;
++	}
++
++	public void initGui() {
++	}
++
++	public void drawScreen(int var1, int var2, float var3) {
++		this.drawBackground(0);
++		ScaledResolution var5 = new ScaledResolution(this.mc.displayWidth, this.mc.displayHeight);
++		int var6 = var5.getScaledWidth();
++		int var7 = var5.getScaledHeight();
++		this.renderFullImage(this.imagepath, var6, var7);
++		//this.drawGradientRect(0, 0, this.width, this.height, -12574688, -11530224);
++		this.timer++;
++		if(this.timer <= 20 * 3) {
++			GL11.glPushMatrix();
++			GL11.glScalef(2.0F, 2.0F, 2.0F);
++			this.drawCenteredString(this.fontRenderer, this.title, this.width / 4, (this.height / 4) - 4, 16777215);
++			GL11.glPopMatrix();
++		}
++		if(this.timer >= 20 * 5) {
++			this.timer = 0;
++		}
++		try {
++			Thread.sleep(20);
++		} catch (InterruptedException e) {
++			throw new RuntimeException(e);
++		}
++		super.drawScreen(var1, var2, var3);
++	}
++
++	protected void keyTyped(char var1, int var2) {
++	}
++}
+--- net/minecraft/src/GuiScreen.java
++++ net/minecraft/src/GuiScreen.java
+@@ -26,6 +26,25 @@
+ 
+ 	}
+ 
++	public void renderFullImage(String var1, int var2, int var3) {
++		GL11.glDisable(GL11.GL_DEPTH_TEST);
++		GL11.glDepthMask(false);
++		GL11.glBlendFunc(GL11.GL_ZERO, GL11.GL_ONE_MINUS_SRC_COLOR);
++		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
++		GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.mc.renderEngine.getTexture(var1));
++		Tessellator var4 = Tessellator.instance;
++		var4.startDrawingQuads();
++		var4.addVertexWithUV(0.0D, (double)var3, -90.0D, 0.0D, 1.0D);
++		var4.addVertexWithUV((double)var2, (double)var3, -90.0D, 1.0D, 1.0D);
++		var4.addVertexWithUV((double)var2, 0.0D, -90.0D, 1.0D, 0.0D);
++		var4.addVertexWithUV(0.0D, 0.0D, -90.0D, 0.0D, 0.0D);
++		var4.draw();
++		GL11.glDepthMask(true);
++		GL11.glEnable(GL11.GL_DEPTH_TEST);
++		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
++		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
++	}
++
+ 	protected void keyTyped(char var1, int var2) {
+ 		if(var2 == 1) {
+ 			this.mc.displayGuiScreen((GuiScreen)null);
+@@ -104,13 +123,26 @@
+ 	}
+ 
+ 	public void handleKeyboardInput() {
+-		if(Keyboard.getEventKeyState()) {
+-			if(Keyboard.getEventKey() == Keyboard.KEY_F11) {
+-				this.mc.toggleFullscreen();
+-				return;
+-			}
+-
+-			this.keyTyped(Keyboard.getEventCharacter(), Keyboard.getEventKey());
++		if(this.mc.currentScreen != null) {
++			if(Keyboard.getEventKeyState()) {
++				if(Keyboard.getEventKey() == Keyboard.KEY_F11) {
++					this.mc.toggleFullscreen();
++					return;
++				}
++
++				this.keyTyped(Keyboard.getEventCharacter(), Keyboard.getEventKey());
++			}
++		} else {
++			if(!this.mc.theWorld.timerS[2]) {
++				if(Keyboard.getEventKeyState()) {
++					if(Keyboard.getEventKey() == Keyboard.KEY_F11) {
++						this.mc.toggleFullscreen();
++						return;
++					}
++
++					this.keyTyped(Keyboard.getEventCharacter(), Keyboard.getEventKey());
++				}
++			}
+ 		}
+ 
+ 	}
+--- /dev/null
++++ net/minecraft/src/GuiYesNoX3D.java
+@@ -1,0 +1,49 @@
++package net.minecraft.src;
++
++import org.lwjgl.opengl.GL11;
++import java.util.Random;
++
++public class GuiYesNoX3D extends GuiScreen {
++	private String message1;
++	private String imagepath;
++	public int timer = 0;
++
++	public GuiYesNoX3D(String var2, String var4) {
++		this.message1 = var2;
++		this.imagepath = var4;
++
++	}
++
++	public void initGui() {
++		this.controlList.add(new GuiSmallButton(0, this.width / 2 - 155 + 0, this.height - this.height / 10, "Yes"));
++		this.controlList.add(new GuiSmallButton(1, this.width / 2 - 155 + 160, this.height - this.height / 10, "No"));
++	}
++
++	protected void actionPerformed(GuiButton var1) {
++		throw new Error("Something's different");
++	}
++
++	public void drawScreen(int var1, int var2, float var3) {
++		this.drawBackground(0);
++		ScaledResolution var5 = new ScaledResolution(this.mc.displayWidth, this.mc.displayHeight);
++		int var6 = var5.getScaledWidth();
++		int var7 = var5.getScaledHeight();
++		this.renderFullImage(this.imagepath, var6, var7);
++		this.timer++;
++		if(this.timer <= 20) {
++			GL11.glPushMatrix();
++			GL11.glScalef(2.0F, 2.0F, 2.0F);
++			this.drawCenteredString(this.fontRenderer, this.message1, this.width / 4, this.height / 4 - 4, 16777215);
++			GL11.glPopMatrix();
++		}
++		if(this.timer >= 40) {
++			this.timer = 0;
++		}
++		try {
++			Thread.sleep(20);
++		} catch (InterruptedException e) {
++			throw new RuntimeException(e);
++		}
++		super.drawScreen(var1, var2, var3);
++	}
++}
+--- net/minecraft/src/PlayerController.java
++++ net/minecraft/src/PlayerController.java
+@@ -58,6 +58,9 @@
+ 	}
+ 
+ 	public boolean onPlayerRightClick(EntityPlayer var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7) {
++		if(this.mc.theWorld.timerS[3]) {
++			return true;
++		}
+ 		int var8 = var2.getBlockId(var4, var5, var6);
+ 		return var8 > 0 && Block.blocksList[var8].blockActivated(var2, var4, var5, var6, var1) ? true : (var3 == null ? false : var3.useItem(var1, var2, var4, var5, var6, var7));
+ 	}
+--- net/minecraft/src/GuiChat.java
++++ net/minecraft/src/GuiChat.java
+@@ -14,6 +14,10 @@
+ 		Keyboard.enableRepeatEvents(false);
+ 	}
+ 
++	public boolean doesGuiPauseGame() {
++		return false;
++	}
++
+ 	public void updateScreen() {
+ 		++this.updateCounter;
+ 	}
+--- /dev/null
++++ net/minecraft/src/GuiYesNoX.java
+@@ -1,0 +1,49 @@
++package net.minecraft.src;
++
++import org.lwjgl.opengl.GL11;
++import java.util.Random;
++
++public class GuiYesNoX extends GuiScreen {
++	private String message1;
++	private String imagepath;
++	public int timer = 0;
++
++	public GuiYesNoX(String var2, String var4) {
++		this.message1 = var2;
++		this.imagepath = var4;
++
++	}
++
++	public void initGui() {
++		this.controlList.add(new GuiSmallButton(0, this.width / 2 - 155 + 0, this.height - this.height / 10, "Yes"));
++		this.controlList.add(new GuiSmallButton(1, this.width / 2 - 155 + 160, this.height - this.height / 10, "No"));
++	}
++
++	protected void actionPerformed(GuiButton var1) {
++		this.mc.displayGuiScreen(null);
++	}
++
++	public void drawScreen(int var1, int var2, float var3) {
++		this.drawBackground(0);
++		ScaledResolution var5 = new ScaledResolution(this.mc.displayWidth, this.mc.displayHeight);
++		int var6 = var5.getScaledWidth();
++		int var7 = var5.getScaledHeight();
++		this.renderFullImage(this.imagepath, var6, var7);
++		this.timer++;
++		if(this.timer <= 20) {
++			GL11.glPushMatrix();
++			GL11.glScalef(2.0F, 2.0F, 2.0F);
++			this.drawCenteredString(this.fontRenderer, this.message1, this.width / 4, this.height / 4 - 4, 16777215);
++			GL11.glPopMatrix();
++		}
++		if(this.timer >= 40) {
++			this.timer = 0;
++		}
++		try {
++			Thread.sleep(20);
++		} catch (InterruptedException e) {
++			throw new RuntimeException(e);
++		}
++		super.drawScreen(var1, var2, var3);
++	}
++}
+--- net/minecraft/src/TexturedQuad.java
++++ net/minecraft/src/TexturedQuad.java
+@@ -12,14 +12,14 @@
+ 		this.nVertices = var1.length;
+ 	}
+ 
+-	public TexturedQuad(PositionTexureVertex[] var1, int var2, int var3, int var4, int var5) {
++	public TexturedQuad(PositionTexureVertex[] var1, int var2, int var3, int var4, int var5, float sw, float sh) {
+ 		this(var1);
+ 		float var6 = 0.0015625F;
+ 		float var7 = 0.003125F;
+-		var1[0] = var1[0].setTexturePosition((float)var4 / 64.0F - var6, (float)var3 / 32.0F + var7);
+-		var1[1] = var1[1].setTexturePosition((float)var2 / 64.0F + var6, (float)var3 / 32.0F + var7);
+-		var1[2] = var1[2].setTexturePosition((float)var2 / 64.0F + var6, (float)var5 / 32.0F - var7);
+-		var1[3] = var1[3].setTexturePosition((float)var4 / 64.0F - var6, (float)var5 / 32.0F - var7);
++		var1[0] = var1[0].setTexturePosition((float)var4 / sw - var6, (float)var3 / sh + var7);
++		var1[1] = var1[1].setTexturePosition((float)var2 / sw + var6, (float)var3 / sh + var7);
++		var1[2] = var1[2].setTexturePosition((float)var2 / sw + var6, (float)var5 / sh - var7);
++		var1[3] = var1[3].setTexturePosition((float)var4 / sw - var6, (float)var5 / sh - var7);
+ 	}
+ 
+ 	public void flipFace() {
+--- /dev/null
++++ net/minecraft/src/WorldGen00001017408.java
+@@ -1,0 +1,21 @@
++package net.minecraft.src;
++
++public class WorldGen00001017408 {
++	public boolean generate(World var1, int X, int Y, int Z) {
++		int length = 32;
++		int width = 6;
++		int height = 7;
++		for(int i = 0; i < length; i++) {
++			for(int j = -width / 2; j < width / 2; j++) {
++				for(int k = 0; k < height; k++) {
++					if(k >= 1 && j > (-width / 2) + 1 && j < (width / 2) - 1 && i != 0 && i != length - 1) {
++						var1.setBlockWithNotify(i + X, k + Y, j + Z, 0);
++					} else {
++						var1.setBlockWithNotify(i + X, k + Y, j + Z, Block.bedrock.blockID);
++					}
++				}
++			}
++		}
++		return true;
++	}
++}
+--- net/minecraft/src/GameSettings.java
++++ net/minecraft/src/GameSettings.java
+@@ -16,6 +16,8 @@
+ 	public boolean invertMouse = false;
+ 	public boolean d = false;
+ 	public int renderDistance = 0;
++	public boolean renderDistanceX = false;
++	public boolean unlock = false;
+ 	public boolean viewBobbing = true;
+ 	public boolean anaglyph = false;
+ 	public boolean limitFramerate = false;
+@@ -147,6 +149,10 @@
+ 					this.viewBobbing = var3[1].equals("true");
+ 				}
+ 
++				if(var3[0].equals("unlock")) {
++					this.unlock = var3[1].equals("false");
++				}
++
+ 				if(var3[0].equals("anaglyph3d")) {
+ 					this.anaglyph = var3[1].equals("true");
+ 				}
+@@ -185,6 +191,7 @@
+ 			var1.println("showFrameRate:" + this.d);
+ 			var1.println("viewDistance:" + this.renderDistance);
+ 			var1.println("bobView:" + this.viewBobbing);
++			var1.println("unlock:" + this.unlock);
+ 			var1.println("anaglyph3d:" + this.anaglyph);
+ 			var1.println("limitFramerate:" + this.limitFramerate);
+ 			var1.println("difficulty:" + this.difficulty);
