@@ -7,8 +7,9 @@
 ## Note
 - This version has not been officially released by Mojang, nor is it officially certified.
 - The creator assumes no responsibility for any damage caused by playing this version.
-- Unauthorized reproduction is prohibited. - Unauthorized reproduction is prohibited. If found, we will report it.
-- Due to the MCP license, the code will not be released, but patches will be released.
+- Copying this mod without any modifications and presenting it as your own creation is prohibited.
+- Forking is permitted, but you must credit this repository and either Yon4800 or YonCursedMC.
+- Due to the MCP license, the code will not be released. Patches for the changes made will be released.
 - Contains a lot of flashing, scary elements, and horror sounds. Please be careful when playing.
 - Please prepare a PC with a decent CPU, video card, and RAM.
 - If using this for live commentary, please credit the URL of this version.
